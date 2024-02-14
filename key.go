@@ -46,27 +46,29 @@ func base64Encode(payload []byte) string {
 	return b64.StdEncoding.EncodeToString(payload)
 }
 
-func generateEncryptionKeys() (string, string, error) {
-	//publicKey, privateKey, err := ed25519.GenerateKey(nil)
+func generateEncryptionKeys() (string, string, time.Time, time.Time, error) {
 	privateKey, err := x25519.GenerateKey(rand.Reader)
 	if err != nil {
 		fmt.Println("Error generating x25519 keys for encryption")
-		return "", "", err
+		return "", "", time.Time{}, time.Time{}, err
 	}
+
+	validFrom := time.Now().UTC()
+	validTill := validFrom.Add(10 * 365 * 24 * time.Hour) // 10 years validity
 
 	marshaledPrivateKey, err := marshalX25519PrivateKey(privateKey.Bytes())
 	if err != nil {
 		fmt.Println("Error marshaling enc private key to x509.pkcs format", err)
-		return "", "", err
+		return "", "", time.Time{}, time.Time{}, err
 	}
 
 	marshaledPublicKey, err := marshalX25519PublicKey(privateKey.PublicKey.Bytes())
 	if err != nil {
 		fmt.Println("Error marshaling enc public key to x509 format", err)
-		return "", "", err
+		return "", "", time.Time{}, time.Time{}, err
 	}
 
-	return base64Encode(marshaledPublicKey), base64Encode(marshaledPrivateKey), nil
+	return base64Encode(marshaledPublicKey), base64Encode(marshaledPrivateKey), validFrom, validTill, nil
 }
 
 func marshalX25519PrivateKey(key []byte) ([]byte, error) {
@@ -192,14 +194,17 @@ func aesDecrypt(cipherText []byte, key []byte) ([]byte, error) {
 	return plainText, nil
 }
 
-func generateSigningKeys() (string, string, error) {
+func generateSigningKeys() (string, string, time.Time, time.Time, error) {
 	publicKey, privateKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
 		fmt.Println("Error generating signing keys", err)
-		return "", "", err
+		return "", "", time.Time{}, time.Time{}, err
 	}
 
-	return base64Encode(publicKey), base64Encode(privateKey), nil
+	validFrom := time.Now().UTC()
+	validTill := validFrom.Add(10 * 365 * 24 * time.Hour) // 10 years validity
+
+	return base64Encode(publicKey), base64Encode(privateKey), validFrom, validTill, nil
 }
 
 func signRequest(privateKey string, payload []byte, currentTime int, ttl int) (string, error) {
@@ -384,26 +389,32 @@ func main() {
 
 	args := os.Args[1:]
 	if len(args) == 0 {
-		fmt.Println("Missing paramsters. Try ./crypto generate_key_pairs")
+		fmt.Println("Missing parameters. Try ./crypto generate_key_pairs")
 		return
 	}
 
 	switch args[0] {
 	case "generate_key_pairs":
-		signingPublicKey, signingPrivateKey, err := generateSigningKeys()
+		signingPublicKey, signingPrivateKey, signingValidFrom, signingValidTill, err := generateSigningKeys()
 		if err != nil {
 			fmt.Println("Could not generate signing keys")
 			return
 		}
-		encPublicKey, encPrivateKey, err := generateEncryptionKeys()
+		encPublicKey, encPrivateKey, encValidFrom, encValidTill, err := generateEncryptionKeys()
 		if err != nil {
 			fmt.Println("Could not generate encryption keys")
 			return
 		}
+
 		fmt.Println("Signing_private_key:", signingPrivateKey)
 		fmt.Println("Signing_public_key:", signingPublicKey)
+		fmt.Printf("Signing_valid_from: %s\n", signingValidFrom.Format(time.RFC3339))
+		fmt.Printf("Signing_valid_till: %s\n", signingValidTill.Format(time.RFC3339))
+
 		fmt.Println("Crypto_Privatekey:", encPrivateKey)
 		fmt.Println("Crypto_Publickey:", encPublicKey)
+		fmt.Printf("Crypto_valid_from: %s\n", encValidFrom.Format(time.RFC3339))
+		fmt.Printf("Crypto_valid_till: %s\n", encValidTill.Format(time.RFC3339))
 	case "create_authorisation_header":
 		authHeader, err := getAuthHeader()
 		if err == nil {
