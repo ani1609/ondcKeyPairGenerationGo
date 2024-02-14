@@ -411,10 +411,10 @@ func main() {
 		fmt.Printf("Signing_valid_from: %s\n", signingValidFrom.Format(time.RFC3339))
 		fmt.Printf("Signing_valid_till: %s\n", signingValidTill.Format(time.RFC3339))
 
-		fmt.Println("Crypto_Privatekey:", encPrivateKey)
-		fmt.Println("Crypto_Publickey:", encPublicKey)
-		fmt.Printf("Crypto_valid_from: %s\n", encValidFrom.Format(time.RFC3339))
-		fmt.Printf("Crypto_valid_till: %s\n", encValidTill.Format(time.RFC3339))
+		fmt.Println("Encryption_Privatekey:", encPrivateKey)
+		fmt.Println("Encryption_Publickey:", encPublicKey)
+		fmt.Printf("Encryption_valid_from: %s\n", encValidFrom.Format(time.RFC3339))
+		fmt.Printf("Encryption_valid_till: %s\n", encValidTill.Format(time.RFC3339))
 	case "create_authorisation_header":
 		authHeader, err := getAuthHeader()
 		if err == nil {
