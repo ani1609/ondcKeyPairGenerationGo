@@ -406,15 +406,17 @@ func main() {
 			return
 		}
 
+		customFormat := "2006-01-02T15:04:05.999Z"
+
 		fmt.Println("Signing_private_key:", signingPrivateKey)
 		fmt.Println("Signing_public_key:", signingPublicKey)
-		fmt.Printf("Signing_valid_from: %s\n", signingValidFrom.Format(time.RFC3339))
-		fmt.Printf("Signing_valid_till: %s\n", signingValidTill.Format(time.RFC3339))
+		fmt.Printf("Signing_valid_from: %s\n", signingValidFrom.Format(customFormat))
+		fmt.Printf("Signing_valid_till: %s\n", signingValidTill.Format(customFormat))
 
 		fmt.Println("Encryption_Privatekey:", encPrivateKey)
 		fmt.Println("Encryption_Publickey:", encPublicKey)
-		fmt.Printf("Encryption_valid_from: %s\n", encValidFrom.Format(time.RFC3339))
-		fmt.Printf("Encryption_valid_till: %s\n", encValidTill.Format(time.RFC3339))
+		fmt.Printf("Encryption_valid_from: %s\n", encValidFrom.Format(customFormat))
+		fmt.Printf("Encryption_valid_till: %s\n", encValidTill.Format(customFormat))
 	case "create_authorisation_header":
 		authHeader, err := getAuthHeader()
 		if err == nil {
