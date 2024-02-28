@@ -15,6 +15,8 @@ import (
 	"regexp"
 	"time"
 
+	"encoding/json"
+
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/curve25519"
 	"maze.io/x/crypto/x25519"
@@ -36,6 +38,47 @@ type publicKeyInfo struct {
 type pkixPublicKey struct {
 	Algo      pkix.AlgorithmIdentifier
 	BitString asn1.BitString
+}
+
+func signPayload(privateKey string, payload []byte) (string, error) {
+	// Extracting search parameters from the payload
+	var searchParameters struct {
+		SearchParams struct {
+			Domain  string `json:"domain"`
+			Country string `json:"country"`
+			Type    string `json:"type"`
+			City    string `json:"city"`
+		} `json:"search_parameters"`
+	}
+
+	if err := json.Unmarshal(payload, &searchParameters); err != nil {
+		fmt.Println("Error unmarshaling payload:", err)
+		return "", err
+	}
+
+	// Print the required payload parameters for verification
+	fmt.Println("Domain:", searchParameters.SearchParams.Domain)
+	fmt.Println("Country:", searchParameters.SearchParams.Country)
+	fmt.Println("Type:", searchParameters.SearchParams.Type)
+	fmt.Println("City:", searchParameters.SearchParams.City)
+
+	// Create a signature string based on the specified format
+	signatureBody := fmt.Sprintf("sign(%s|%s|%s|%s)",
+		searchParameters.SearchParams.Country,
+		searchParameters.SearchParams.Domain,
+		searchParameters.SearchParams.Type,
+		searchParameters.SearchParams.City)
+
+	// Decode the private key
+	decodedKey, err := base64Decode(privateKey)
+	if err != nil {
+		fmt.Println("Error decoding signing private key", err)
+		return "", err
+	}
+
+	// Create a signature using ed25519 private key
+	signature := ed25519.Sign(decodedKey, []byte(signatureBody))
+	return base64Encode(signature), nil
 }
 
 func base64Decode(payload string) ([]byte, error) {
@@ -440,6 +483,31 @@ func main() {
 		if err == nil {
 			fmt.Println(plainText)
 		}
+	case "sign_payload":
+		privateKey := args[1]
 
+		// Set your custom payload here
+		customPayload := `{
+			"search_parameters": {
+				"domain":"ONDC:RET13",
+				"country":"IND",
+				"type":"sellerApp",
+				"city":"std:033"
+			}
+		}`
+
+		// Convert the custom payload to []byte
+		payload := []byte(customPayload)
+
+		timestamp := time.Now().UTC().Format(time.RFC3339)
+
+		signature, err := signPayload(privateKey, payload)
+		if err != nil {
+			fmt.Println("Could not compute signature", err)
+			return
+		}
+
+		fmt.Printf("Signature: %s\n", timestamp)
+		fmt.Printf("Signature: %s\n", signature)
 	}
 }
